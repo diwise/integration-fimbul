@@ -20,8 +20,6 @@ import (
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y"
 )
 
-/*Skapa ett enkelt program som gör ett http-anrop mot sensorn och skapar en WeatherObserved per sensor. Sensorerna skall kunna skickas in med ett kommandoradsargument.*/
-
 type wsLog struct {
 	DateTime                 string `json:"MESSAGE_DATE_TIME"`
 	WindMinimumSpeed         string `json:"WIND_MINIMUM_SPEED"`
@@ -57,13 +55,12 @@ func main() {
 	ctxBroker := client.NewContextBrokerClient(ctxBrokerURL, client.Debug("true"))
 
 	getCurrentWeatherFromWeatherStation(ctx, service, stationId, ctxBroker)
-
 }
 
 func getCurrentWeatherFromWeatherStation(ctx context.Context, service, id string, ctxBroker client.ContextBrokerClient) error {
 	client := http.Client{}
 
-	url := service + "/stations/" + id + ".last" //fmt.sprintf
+	url := fmt.Sprintf("%s/stations/%s.last", service, id)
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
@@ -72,7 +69,7 @@ func getCurrentWeatherFromWeatherStation(ctx context.Context, service, id string
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return err //fix in a bit
+		return fmt.Errorf("failed to send request: %s", err.Error())
 	}
 
 	if resp.StatusCode != 200 {
@@ -85,19 +82,19 @@ func getCurrentWeatherFromWeatherStation(ctx context.Context, service, id string
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read response body: %s", err.Error())
 	}
 
 	err = json.Unmarshal(bodyBytes, &ws)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to unmarshal response body into json: %s", err.Error())
 	}
 
 	entityID := fiware.WeatherObservedIDPrefix + ws.Station.ID //should have some prefix later
 
 	attributes, err := createWeatherObservedAttributes(ctx, ws.Station)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create attributes for entity: %s", err.Error())
 	}
 
 	fragment, _ := entities.NewFragment(attributes...)
@@ -107,31 +104,29 @@ func getCurrentWeatherFromWeatherStation(ctx context.Context, service, id string
 	_, err = ctxBroker.MergeEntity(ctx, entityID, fragment, headers)
 	if err != nil {
 		if !errors.Is(err, ngsierrors.ErrNotFound) {
-			return err
+			return fmt.Errorf("failed to merge entity: %s", err.Error())
 		}
 
 		latitude, err := strconv.ParseFloat(ws.Station.Latitude, 64)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to parse latitude from string: %s", err.Error())
 		}
 		longitude, err := strconv.ParseFloat(ws.Station.Longitude, 64)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to parse longitude from string: %s", err.Error())
 		}
 
 		attributes = append(attributes, decorators.Location(latitude, longitude), decorators.Name(ws.Station.Name))
 
 		entity, err := entities.New(entityID, fiware.WeatherObservedTypeName, attributes...)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to construct new entity: %s", err.Error())
 		}
 
 		_, err = ctxBroker.CreateEntity(ctx, entity, headers)
 		if err != nil {
 			return fmt.Errorf("failed to create entity: %s", err.Error())
 		}
-
-		return err //fill in soon
 	}
 
 	return nil
@@ -140,13 +135,13 @@ func getCurrentWeatherFromWeatherStation(ctx context.Context, service, id string
 func createWeatherObservedAttributes(ctx context.Context, ws weatherStation) ([]entities.EntityDecoratorFunc, error) {
 	temp, err := strconv.ParseFloat(ws.Logg[0].Temperature, 64)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse temperature from string: %s", err.Error())
 	}
 
 	layout := "2006-01-02 15:04:05"
 	t, err := time.Parse(layout, ws.Logg[0].DateTime)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse time from string: %s", err.Error())
 	}
 
 	utcTime := t.UTC().Format(time.RFC3339)
