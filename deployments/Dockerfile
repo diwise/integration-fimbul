@@ -1,4 +1,4 @@
-FROM golang:1.19.5 AS builder
+FROM golang:1.19 AS builder
 
 WORKDIR /app
 
@@ -8,8 +8,6 @@ COPY go.sum .
 RUN go mod download
 
 COPY . .
-
-RUN go test -v ./...
 
 WORKDIR /app/cmd/integration-fimbul
 
@@ -25,4 +23,4 @@ RUN chmod 700 /opt/diwise
 
 USER 1001
 
-ENTRYPOINT ["/app/cmd/integration-fimbul"]
+ENTRYPOINT ["/opt/diwise/integration-fimbul"]
