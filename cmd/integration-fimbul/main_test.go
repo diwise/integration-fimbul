@@ -12,6 +12,7 @@ import (
 	ngsierrors "github.com/diwise/context-broker/pkg/ngsild/errors"
 	"github.com/diwise/context-broker/pkg/ngsild/types"
 	test "github.com/diwise/context-broker/pkg/test"
+	"github.com/diwise/integration-fimbul/internal/application"
 	testhttp "github.com/diwise/service-chassis/pkg/test/http"
 	"github.com/diwise/service-chassis/pkg/test/http/response"
 	"github.com/matryer/is"
@@ -20,8 +21,11 @@ import (
 func TestGetCurrentWeather(t *testing.T) {
 	is, ctxBroker, service := testSetup(t)
 
-	id := "S-vall-01-02"
-	err := getCurrentWeatherFromWeatherStation(context.Background(), service.URL(), id, ctxBroker)
+	id := []application.StationID{"S-vall-01-02"}
+	app := application.New(ctxBroker, service.URL())
+	err := app.CreateWeatherObserved(context.Background(), func() []application.StationID {
+		return id
+	})
 	is.NoErr(err)
 	is.Equal(len(ctxBroker.MergeEntityCalls()), 1)
 	is.Equal(len(ctxBroker.CreateEntityCalls()), 1)
@@ -30,8 +34,11 @@ func TestGetCurrentWeather(t *testing.T) {
 func TestGetTimeParsedCorrectly(t *testing.T) {
 	is, ctxBroker, service := testSetup(t)
 
-	id := "S-vall-01-02"
-	err := getCurrentWeatherFromWeatherStation(context.Background(), service.URL(), id, ctxBroker)
+	id := []application.StationID{"S-vall-01-02"}
+	app := application.New(ctxBroker, service.URL())
+	err := app.CreateWeatherObserved(context.Background(), func() []application.StationID {
+		return id
+	})
 	is.NoErr(err)
 	is.Equal(len(ctxBroker.MergeEntityCalls()), 1)
 	is.Equal(len(ctxBroker.CreateEntityCalls()), 1)
