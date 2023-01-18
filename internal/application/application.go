@@ -37,7 +37,7 @@ func New(cb client.ContextBrokerClient, service string) IntegrationFimbul {
 }
 
 func (i intFim) CreateWeatherObserved(ctx context.Context, stationIds func() []StationID) error {
-	logging.GetFromContext(ctx) //use this log instead of fmt.Errorf
+	log := logging.GetFromContext(ctx)
 	client := http.Client{}
 
 	for _, id := range stationIds() {
@@ -45,12 +45,14 @@ func (i intFim) CreateWeatherObserved(ctx context.Context, stationIds func() []S
 
 		req, err := http.NewRequest(http.MethodGet, url, nil)
 		if err != nil {
-			return fmt.Errorf("failed to create request: %s", err.Error())
+			log.Error().Err(err).Msg("failed to create request")
+			return err
 		}
 
 		resp, err := client.Do(req)
 		if err != nil {
-			return fmt.Errorf("failed to send request: %s", err.Error())
+			log.Error().Err(err).Msg("failed to send request")
+			return err
 		}
 
 		if resp.StatusCode != 200 {
@@ -63,12 +65,14 @@ func (i intFim) CreateWeatherObserved(ctx context.Context, stationIds func() []S
 
 		bodyBytes, err := io.ReadAll(resp.Body)
 		if err != nil {
-			return fmt.Errorf("failed to read response body: %s", err.Error())
+			log.Error().Err(err).Msg("failed to read response body")
+			return err
 		}
 
 		err = json.Unmarshal(bodyBytes, &ws)
 		if err != nil {
-			return fmt.Errorf("failed to unmarshal response body into json: %s", err.Error())
+			log.Error().Err(err).Msg("failed to unmarshal response body into json")
+			return err
 		}
 
 		//TODO: should have some prefix later
@@ -76,7 +80,8 @@ func (i intFim) CreateWeatherObserved(ctx context.Context, stationIds func() []S
 
 		attributes, err := createWeatherObservedAttributes(ctx, ws.Station)
 		if err != nil {
-			return fmt.Errorf("failed to create attributes for entity: %s", err.Error())
+			log.Error().Err(err).Msg("failed to create attributes for entity")
+			return err
 		}
 
 		fragment, _ := entities.NewFragment(attributes...)
@@ -86,28 +91,33 @@ func (i intFim) CreateWeatherObserved(ctx context.Context, stationIds func() []S
 		_, err = i.cb.MergeEntity(ctx, entityID, fragment, headers)
 		if err != nil {
 			if !errors.Is(err, ngsierrors.ErrNotFound) {
-				return fmt.Errorf("failed to merge entity: %s", err.Error())
+				log.Error().Err(err).Msg("failed to merge entity")
+				return err
 			}
 
 			latitude, err := strconv.ParseFloat(ws.Station.Latitude, 64)
 			if err != nil {
-				return fmt.Errorf("failed to parse latitude from string: %s", err.Error())
+				log.Error().Err(err).Msg("failed to parse latitude from string")
+				return err
 			}
 			longitude, err := strconv.ParseFloat(ws.Station.Longitude, 64)
 			if err != nil {
-				return fmt.Errorf("failed to parse longitude from string: %s", err.Error())
+				log.Error().Err(err).Msg("failed to parse longitude from string")
+				return err
 			}
 
 			attributes = append(attributes, decorators.Location(latitude, longitude), decorators.Name(ws.Station.Name))
 
 			entity, err := entities.New(entityID, fiware.WeatherObservedTypeName, attributes...)
 			if err != nil {
-				return fmt.Errorf("failed to construct new entity: %s", err.Error())
+				log.Error().Err(err).Msg("failed to construct new entity")
+				return err
 			}
 
 			_, err = i.cb.CreateEntity(ctx, entity, headers)
 			if err != nil {
-				return fmt.Errorf("failed to create entity: %s", err.Error())
+				log.Error().Err(err).Msg("failed to create entity")
+				return err
 			}
 		}
 	}
