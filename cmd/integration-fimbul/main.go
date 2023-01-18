@@ -24,13 +24,14 @@ func main() {
 	defer cleanup()
 
 	service := env.GetVariableOrDie(log, "FIMBUL_URL", "url to weather service")
+	woPrefixFormat := env.GetVariableOrDie(log, "WO_PREFIX_FORMAT", "end format for the entity id's prefix")
 	ctxBrokerURL := env.GetVariableOrDie(log, "CONTEXT_BROKER_URL", "url to context broker")
 
 	ctxBroker := client.NewContextBrokerClient(ctxBrokerURL, client.Debug("true"))
 
 	app := application.New(ctxBroker, service)
 
-	app.CreateWeatherObserved(ctx, func() []application.StationID {
+	app.CreateWeatherObserved(ctx, woPrefixFormat, func() []application.StationID {
 		var stations []application.StationID
 
 		stationList := strings.Split(stationIds, ",")

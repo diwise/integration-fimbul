@@ -6,6 +6,7 @@ require (
 	github.com/diwise/context-broker v0.0.0-20230111153643-ba8e70057fc3
 	github.com/diwise/service-chassis v0.0.0-20221209133941-0250677afa17
 	github.com/matryer/is v1.4.0
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.34.0
 )
 
 require (
@@ -26,7 +27,6 @@ require (
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/rs/zerolog v1.28.0 // indirect
-	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.34.0 // indirect
 	go.opentelemetry.io/otel v1.11.2 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.11.2 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric v0.34.0 // indirect

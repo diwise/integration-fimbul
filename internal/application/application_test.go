@@ -22,7 +22,7 @@ func TestGetCurrentWeather(t *testing.T) {
 
 	id := []StationID{"S-vall-01-02"}
 	app := New(ctxBroker, service.URL())
-	err := app.CreateWeatherObserved(context.Background(), func() []StationID {
+	err := app.CreateWeatherObserved(context.Background(), "test:prefix:", func() []StationID {
 		return id
 	})
 	is.NoErr(err)
@@ -30,12 +30,25 @@ func TestGetCurrentWeather(t *testing.T) {
 	is.Equal(len(ctxBroker.CreateEntityCalls()), 1)
 }
 
+func TestGetCurrentWeatherRunsForEachStationID(t *testing.T) {
+	is, ctxBroker, service := testSetup(t)
+
+	id := []StationID{"S-vall-01-02", "S-vall-03-04"} //there is no test data for a station with the second ID, but the important thing is that the program attempts to run once for each id
+	app := New(ctxBroker, service.URL())
+	err := app.CreateWeatherObserved(context.Background(), "test:prefix:", func() []StationID {
+		return id
+	})
+	is.NoErr(err)
+	is.Equal(len(ctxBroker.MergeEntityCalls()), 2)
+	is.Equal(len(ctxBroker.CreateEntityCalls()), 2)
+}
+
 func TestGetTimeParsedCorrectly(t *testing.T) {
 	is, ctxBroker, service := testSetup(t)
 
 	id := []StationID{"S-vall-01-02"}
 	app := New(ctxBroker, service.URL())
-	err := app.CreateWeatherObserved(context.Background(), func() []StationID {
+	err := app.CreateWeatherObserved(context.Background(), "test:prefix:", func() []StationID {
 		return id
 	})
 	is.NoErr(err)

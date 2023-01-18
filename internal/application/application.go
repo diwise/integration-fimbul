@@ -16,40 +16,44 @@ import (
 	"github.com/diwise/context-broker/pkg/ngsild/types/entities"
 	"github.com/diwise/context-broker/pkg/ngsild/types/entities/decorators"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/logging"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
-type IntegrationFimbul interface {
-	CreateWeatherObserved(ctx context.Context, stationIds func() []StationID) error
+type Application interface {
+	CreateWeatherObserved(ctx context.Context, prefixFormat string, stationIds func() []StationID) error
 }
 
 type StationID string
 
-type intFim struct {
+type app struct {
 	cb      client.ContextBrokerClient
 	service string
 }
 
-func New(cb client.ContextBrokerClient, service string) IntegrationFimbul {
-	return &intFim{
+func New(cb client.ContextBrokerClient, service string) Application {
+	return &app{
 		cb:      cb,
 		service: service,
 	}
 }
 
-func (i intFim) CreateWeatherObserved(ctx context.Context, stationIds func() []StationID) error {
+func (i app) CreateWeatherObserved(ctx context.Context, prefixFormat string, stationIds func() []StationID) error {
 	log := logging.GetFromContext(ctx)
-	client := http.Client{}
+	client := http.Client{
+		Transport: otelhttp.NewTransport(http.DefaultTransport),
+	}
 
 	for _, id := range stationIds() {
 		url := fmt.Sprintf("%s/stations/%s.last", i.service, id)
 
-		req, err := http.NewRequest(http.MethodGet, url, nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to create request")
 			return err
 		}
 
 		resp, err := client.Do(req)
+		log.Info().Msgf("requesting data from station: %s", id)
 		if err != nil {
 			log.Error().Err(err).Msg("failed to send request")
 			return err
@@ -75,8 +79,7 @@ func (i intFim) CreateWeatherObserved(ctx context.Context, stationIds func() []S
 			return err
 		}
 
-		//TODO: should have some prefix later
-		entityID := fiware.WeatherObservedIDPrefix + ws.Station.ID
+		entityID := fmt.Sprintf("%s%s%s", fiware.WeatherObservedIDPrefix, prefixFormat, ws.Station.ID)
 
 		attributes, err := createWeatherObservedAttributes(ctx, ws.Station)
 		if err != nil {
@@ -88,12 +91,15 @@ func (i intFim) CreateWeatherObserved(ctx context.Context, stationIds func() []S
 
 		headers := map[string][]string{"Content-Type": {"application/ld+json"}}
 
+		log.Info().Msgf("merging entity %s", entityID)
 		_, err = i.cb.MergeEntity(ctx, entityID, fragment, headers)
 		if err != nil {
 			if !errors.Is(err, ngsierrors.ErrNotFound) {
 				log.Error().Err(err).Msg("failed to merge entity")
 				return err
 			}
+
+			log.Info().Msgf("entity with id %s not found, attempting create", entityID)
 
 			latitude, err := strconv.ParseFloat(ws.Station.Latitude, 64)
 			if err != nil {
@@ -120,6 +126,8 @@ func (i intFim) CreateWeatherObserved(ctx context.Context, stationIds func() []S
 				return err
 			}
 		}
+
+		time.Sleep(1 * time.Second)
 	}
 
 	return nil
