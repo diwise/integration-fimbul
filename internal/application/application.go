@@ -15,6 +15,7 @@ import (
 	ngsierrors "github.com/diwise/context-broker/pkg/ngsild/errors"
 	"github.com/diwise/context-broker/pkg/ngsild/types/entities"
 	"github.com/diwise/context-broker/pkg/ngsild/types/entities/decorators"
+	"github.com/diwise/context-broker/pkg/ngsild/types/properties"
 	"github.com/diwise/service-chassis/pkg/infrastructure/o11y/logging"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
@@ -154,7 +155,7 @@ func createWeatherObservedAttributes(ctx context.Context, ws weatherStation) ([]
 
 	attributes := append(
 		make([]entities.EntityDecoratorFunc, 0, 2),
-		decorators.Temperature(temp),
+		decorators.Number("temperature", temp, properties.ObservedAt(utcTime)),
 		decorators.DateTime("dateObserved", utcTime),
 	)
 
