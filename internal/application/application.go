@@ -43,7 +43,12 @@ func (i app) CreateWeatherObserved(ctx context.Context, prefixFormat string, sta
 		Transport: otelhttp.NewTransport(http.DefaultTransport),
 	}
 
-	for _, id := range stationIds() {
+	stations := stationIds()
+	if len(stations) == 0 {
+		return errors.New("list of stations is empty")
+	}
+
+	for _, id := range stations {
 		url := fmt.Sprintf("%s/stations/%s.last", i.service, id)
 
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)

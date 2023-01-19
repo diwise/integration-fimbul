@@ -15,7 +15,7 @@ import (
 var stationIds string
 
 func main() {
-	flag.StringVar(&stationIds, "stationIds", "", "id of the station(s) to retrieve data from")
+	flag.StringVar(&stationIds, "stations", "", "id of the station(s) to retrieve data from")
 	flag.Parse()
 
 	serviceName := "integration-fimbul"
@@ -24,22 +24,28 @@ func main() {
 	defer cleanup()
 
 	service := env.GetVariableOrDie(log, "FIMBUL_URL", "url to weather service")
-	woPrefixFormat := env.GetVariableOrDie(log, "WO_PREFIX_FORMAT", "end format for the entity id's prefix")
+	woPrefix := env.GetVariableOrDie(log, "WO_PREFIX", "prefix ending for the entity id")
 	ctxBrokerURL := env.GetVariableOrDie(log, "CONTEXT_BROKER_URL", "url to context broker")
 
 	ctxBroker := client.NewContextBrokerClient(ctxBrokerURL, client.Debug("true"))
 
 	app := application.New(ctxBroker, service)
 
-	app.CreateWeatherObserved(ctx, woPrefixFormat, func() []application.StationID {
+	err := app.CreateWeatherObserved(ctx, woPrefix, func() []application.StationID {
 		var stations []application.StationID
 
 		stationList := strings.Split(stationIds, ",")
 
 		for _, s := range stationList {
-			stations = append(stations, application.StationID(s))
+			if s != "" {
+				stations = append(stations, application.StationID(s))
+			}
 		}
 
 		return stations
 	})
+
+	if err != nil {
+		log.Error().Err(err).Msg("program failed")
+	}
 }
