@@ -9,7 +9,7 @@ Make sure to set all environment variables before running.
 
 FIMBUL_URL - url to the service we are retrieving data from.
 
-WO_PREFIX - added to the end of the standard fiware prefix for a WeatherObserved entity ("urn:ngsi-ld:WeatherObserved:"). A suggestionß is to add a prefix that suggest locale or ownership of the entity measured. 
+WO_PREFIX - added to the end of the standard fiware prefix for a WeatherObserved entity ("urn:ngsi-ld:WeatherObserved:"). A suggestion is to add a prefix that suggest locale or ownership of the entity measured. 
 
 CONTEXT_BROKER_URL - url to the context broker that the data is being sent to.
 
