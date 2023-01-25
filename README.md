@@ -3,8 +3,15 @@ A service that integrates data between fimbul.se and our City Information Platfo
 
 
 # running locally
-Build image from Dockerfile or use go run
+Build image from Dockerfile:
 
+    `docker build -f Dockerfile -t yourtag:version .`
+
+Or use go run:
+
+    `go run .cmd/integration-fimbul/main.go`
+
+# environment variables
 Make sure to set all environment variables before running.
 
 FIMBUL_URL - url to the service we are retrieving data from.
