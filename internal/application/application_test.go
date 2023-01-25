@@ -30,6 +30,23 @@ func TestGetCurrentWeather(t *testing.T) {
 	is.Equal(len(ctxBroker.CreateEntityCalls()), 1)
 }
 
+func TestPrefixAlwaysEndsWithColon(t *testing.T) {
+	is, ctxBroker, service := testSetup(t)
+
+	id := []StationID{"S-vall-01-02"}
+	app := New(ctxBroker, service.URL())
+	err := app.CreateWeatherObserved(context.Background(), "test:nocolon", func() []StationID {
+		return id
+	})
+	is.NoErr(err)
+	is.Equal(len(ctxBroker.MergeEntityCalls()), 1)
+	is.Equal(len(ctxBroker.CreateEntityCalls()), 1)
+
+	entityID := ctxBroker.MergeEntityCalls()[0].EntityID
+
+	is.Equal(entityID, "urn:ngsi-ld:WeatherObserved:test:nocolon:S-vall-01-02")
+}
+
 func TestGetCurrentWeatherRunsForEachStationID(t *testing.T) {
 	is, ctxBroker, service := testSetup(t)
 
@@ -41,6 +58,30 @@ func TestGetCurrentWeatherRunsForEachStationID(t *testing.T) {
 	is.NoErr(err)
 	is.Equal(len(ctxBroker.MergeEntityCalls()), 2)
 	is.Equal(len(ctxBroker.CreateEntityCalls()), 2)
+}
+
+func TestNumberAttributesHaveObservedAtProperty(t *testing.T) {
+	is, ctxBroker, service := testSetup(t)
+
+	id := []StationID{"S-vall-01-02"}
+	app := New(ctxBroker, service.URL())
+	err := app.CreateWeatherObserved(context.Background(), "test:prefix:", func() []StationID {
+		return id
+	})
+	is.NoErr(err)
+	is.Equal(len(ctxBroker.MergeEntityCalls()), 1)
+	is.Equal(len(ctxBroker.CreateEntityCalls()), 1)
+
+	entity := ctxBroker.MergeEntityCalls()[0].Fragment
+
+	entityBytes, err := json.Marshal(entity)
+	is.NoErr(err)
+
+	fmt.Println(string(entityBytes))
+
+	entityJSON := `{"@context":["https://raw.githubusercontent.com/diwise/context-broker/main/assets/jsonldcontexts/default-context.jsonld"],"dateObserved":{"type":"Property","value":{"@type":"DateTime","@value":"2023-01-13T15:40:00Z"}},"temperature":{"type":"Property","value":-1,"observedAt":"2023-01-13T15:40:00Z"},"windDirection":{"type":"Property","value":62,"observedAt":"2023-01-13T15:40:00Z"},"windSpeed":{"type":"Property","value":1.9,"observedAt":"2023-01-13T15:40:00Z"}}`
+
+	is.True(strings.Contains(string(entityBytes), entityJSON))
 }
 
 func TestGetTimeParsedCorrectly(t *testing.T) {
