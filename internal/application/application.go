@@ -163,6 +163,6 @@ func createWeatherObservedAttributes(ctx context.Context, ws weatherStation) ([]
 		return attributes, nil
 	} else {
 		json.Marshal(ws)
-		return nil, fmt.Errorf("weather station response does not contain loggs: %s", ws)
+		return nil, fmt.Errorf("weather station response does not contain logs: %s", ws)
 	}
 }
