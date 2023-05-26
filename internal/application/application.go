@@ -145,36 +145,41 @@ func (i app) CreateWeatherObserved(ctx context.Context, prefixEnding string, sta
 }
 
 func createWeatherObservedAttributes(ctx context.Context, ws weatherStation) ([]entities.EntityDecoratorFunc, error) {
-	temp, err := strconv.ParseFloat(ws.Logg[0].Temperature, 64)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse temperature from string: %s", err.Error())
+	if len(ws.Logg) > 0 {
+		temp, err := strconv.ParseFloat(ws.Logg[0].Temperature, 64)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse temperature from string: %s", err.Error())
+		}
+
+		windSpeed, err := strconv.ParseFloat(ws.Logg[0].WindAverageSpeed, 64)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse wind speed from string: %s", err.Error())
+		}
+
+		windDirection, err := strconv.ParseFloat(ws.Logg[0].WindDirection, 64)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse wind direction from string: %s", err.Error())
+		}
+
+		layout := "2006-01-02 15:04:05"
+		t, err := time.Parse(layout, ws.Logg[0].DateTime)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse time from string: %s", err.Error())
+		}
+
+		utcTime := t.UTC().Format(time.RFC3339)
+
+		attributes := append(
+			make([]entities.EntityDecoratorFunc, 0, 4),
+			decorators.Number("temperature", temp, properties.ObservedAt(utcTime)),
+			decorators.Number("windSpeed", windSpeed, properties.ObservedAt(utcTime)),
+			decorators.Number("windDirection", windDirection, properties.ObservedAt(utcTime)),
+			decorators.DateTime("dateObserved", utcTime),
+		)
+
+		return attributes, nil
+	} else {
+		json.Marshal(ws)
+		return nil, fmt.Errorf("weather station response does not contain logs: %s", ws)
 	}
-
-	windSpeed, err := strconv.ParseFloat(ws.Logg[0].WindAverageSpeed, 64)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse wind speed from string: %s", err.Error())
-	}
-
-	windDirection, err := strconv.ParseFloat(ws.Logg[0].WindDirection, 64)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse wind direction from string: %s", err.Error())
-	}
-
-	layout := "2006-01-02 15:04:05"
-	t, err := time.Parse(layout, ws.Logg[0].DateTime)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse time from string: %s", err.Error())
-	}
-
-	utcTime := t.UTC().Format(time.RFC3339)
-
-	attributes := append(
-		make([]entities.EntityDecoratorFunc, 0, 4),
-		decorators.Number("temperature", temp, properties.ObservedAt(utcTime)),
-		decorators.Number("windSpeed", windSpeed, properties.ObservedAt(utcTime)),
-		decorators.Number("windDirection", windDirection, properties.ObservedAt(utcTime)),
-		decorators.DateTime("dateObserved", utcTime),
-	)
-
-	return attributes, nil
 }
