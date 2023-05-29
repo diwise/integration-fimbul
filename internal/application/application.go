@@ -140,24 +140,29 @@ func (i app) CreateWeatherObserved(ctx context.Context, prefixFormat string, sta
 }
 
 func createWeatherObservedAttributes(ctx context.Context, ws weatherStation) ([]entities.EntityDecoratorFunc, error) {
-	temp, err := strconv.ParseFloat(ws.Logg[0].Temperature, 64)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse temperature from string: %s", err.Error())
+	if len(ws.Logg) > 0 {
+		temp, err := strconv.ParseFloat(ws.Logg[0].Temperature, 64)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse temperature from string: %s", err.Error())
+		}
+
+		layout := "2006-01-02 15:04:05"
+		t, err := time.Parse(layout, ws.Logg[0].DateTime)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse time from string: %s", err.Error())
+		}
+
+		utcTime := t.UTC().Format(time.RFC3339)
+
+		attributes := append(
+			make([]entities.EntityDecoratorFunc, 0, 2),
+			decorators.Number("temperature", temp, properties.ObservedAt(utcTime)),
+			decorators.DateTime("dateObserved", utcTime),
+		)
+
+		return attributes, nil
+	} else {
+		wsBytes, _ := json.Marshal(ws)
+		return nil, fmt.Errorf("weather station response does not contain logs: %s", wsBytes)
 	}
-
-	layout := "2006-01-02 15:04:05"
-	t, err := time.Parse(layout, ws.Logg[0].DateTime)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse time from string: %s", err.Error())
-	}
-
-	utcTime := t.UTC().Format(time.RFC3339)
-
-	attributes := append(
-		make([]entities.EntityDecoratorFunc, 0, 2),
-		decorators.Number("temperature", temp, properties.ObservedAt(utcTime)),
-		decorators.DateTime("dateObserved", utcTime),
-	)
-
-	return attributes, nil
 }
