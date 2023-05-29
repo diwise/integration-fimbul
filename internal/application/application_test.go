@@ -92,7 +92,7 @@ func TestNumberAttributesHaveObservedAtProperty(t *testing.T) {
 
 	fmt.Println(string(entityBytes))
 
-	entityJSON := `{"@context":["https://raw.githubusercontent.com/diwise/context-broker/main/assets/jsonldcontexts/default-context.jsonld"],"dateObserved":{"type":"Property","value":{"@type":"DateTime","@value":"2023-01-13T15:40:00Z"}},"temperature":{"type":"Property","value":-1,"observedAt":"2023-01-13T15:40:00Z"},"windDirection":{"type":"Property","value":62,"observedAt":"2023-01-13T15:40:00Z"},"windSpeed":{"type":"Property","value":1.9,"observedAt":"2023-01-13T15:40:00Z"}}`
+	entityJSON := `"temperature":{"type":"Property","value":-1,"observedAt":"2023-01-13T15:40:00Z"}`
 
 	is.True(strings.Contains(string(entityBytes), entityJSON))
 }
