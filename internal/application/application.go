@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/diwise/context-broker/pkg/datamodels/fiware"
@@ -42,6 +43,10 @@ func (i app) CreateWeatherObserved(ctx context.Context, prefixFormat string, sta
 	log := logging.GetFromContext(ctx)
 	client := http.Client{
 		Transport: otelhttp.NewTransport(http.DefaultTransport),
+	}
+
+	if !strings.HasSuffix(prefixFormat, ":") {
+		prefixFormat = prefixFormat + ":"
 	}
 
 	stations := stationIds()
