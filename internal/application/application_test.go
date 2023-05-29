@@ -44,7 +44,7 @@ func TestGetCurrentWeather(t *testing.T) {
 }
 
 func TestPrefixAlwaysEndsWithColon(t *testing.T) {
-	is, ctxBroker, service := testSetup(t)
+	is, ctxBroker, service := testSetup(t, testDataWithLogg)
 
 	id := []StationID{"S-vall-01-02"}
 	app := New(ctxBroker, service.URL())
@@ -74,7 +74,7 @@ func TestGetCurrentWeatherRunsForEachStationID(t *testing.T) {
 }
 
 func TestNumberAttributesHaveObservedAtProperty(t *testing.T) {
-	is, ctxBroker, service := testSetup(t)
+	is, ctxBroker, service := testSetup(t, testDataWithLogg)
 
 	id := []StationID{"S-vall-01-02"}
 	app := New(ctxBroker, service.URL())
