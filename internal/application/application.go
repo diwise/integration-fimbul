@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/diwise/context-broker/pkg/datamodels/fiware"
@@ -38,10 +39,14 @@ func New(cb client.ContextBrokerClient, service string) Application {
 	}
 }
 
-func (i app) CreateWeatherObserved(ctx context.Context, prefixFormat string, stationIds func() []StationID) error {
+func (i app) CreateWeatherObserved(ctx context.Context, prefixEnding string, stationIds func() []StationID) error {
 	log := logging.GetFromContext(ctx)
 	client := http.Client{
 		Transport: otelhttp.NewTransport(http.DefaultTransport),
+	}
+
+	if !strings.HasSuffix(prefixEnding, ":") {
+		prefixEnding = prefixEnding + ":"
 	}
 
 	stations := stationIds()
@@ -85,7 +90,7 @@ func (i app) CreateWeatherObserved(ctx context.Context, prefixFormat string, sta
 			return err
 		}
 
-		entityID := fmt.Sprintf("%s%s%s", fiware.WeatherObservedIDPrefix, prefixFormat, ws.Station.ID)
+		entityID := fmt.Sprintf("%s%s%s", fiware.WeatherObservedIDPrefix, prefixEnding, ws.Station.ID)
 
 		attributes, err := createWeatherObservedAttributes(ctx, ws.Station)
 		if err != nil {
@@ -146,6 +151,16 @@ func createWeatherObservedAttributes(ctx context.Context, ws weatherStation) ([]
 			return nil, fmt.Errorf("failed to parse temperature from string: %s", err.Error())
 		}
 
+		windSpeed, err := strconv.ParseFloat(ws.Logg[0].WindAverageSpeed, 64)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse wind speed from string: %s", err.Error())
+		}
+
+		windDirection, err := strconv.ParseFloat(ws.Logg[0].WindDirection, 64)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse wind direction from string: %s", err.Error())
+		}
+
 		layout := "2006-01-02 15:04:05"
 		t, err := time.Parse(layout, ws.Logg[0].DateTime)
 		if err != nil {
@@ -155,8 +170,10 @@ func createWeatherObservedAttributes(ctx context.Context, ws weatherStation) ([]
 		utcTime := t.UTC().Format(time.RFC3339)
 
 		attributes := append(
-			make([]entities.EntityDecoratorFunc, 0, 2),
+			make([]entities.EntityDecoratorFunc, 0, 4),
 			decorators.Number("temperature", temp, properties.ObservedAt(utcTime)),
+			decorators.Number("windSpeed", windSpeed, properties.ObservedAt(utcTime)),
+			decorators.Number("windDirection", windDirection, properties.ObservedAt(utcTime)),
 			decorators.DateTime("dateObserved", utcTime),
 		)
 
