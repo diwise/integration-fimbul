@@ -146,9 +146,6 @@ func (i app) CreateWeatherObserved(ctx context.Context, prefixEnding string, sta
 }
 
 func createWeatherObservedAttributes(ctx context.Context, ws weatherStation) ([]entities.EntityDecoratorFunc, error) {
-	b, _ := json.MarshalIndent(ws, "", " ")
-	logging.GetFromContext(ctx).Info("station data", "body", string(b))
-
 	if len(ws.Logg) > 0 {
 		temp, err := strconv.ParseFloat(ws.Logg[0].Temperature, 64)
 		if err != nil {
