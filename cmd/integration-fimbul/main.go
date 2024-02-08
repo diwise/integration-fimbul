@@ -23,9 +23,9 @@ func main() {
 	ctx, log, cleanup := o11y.Init(context.Background(), serviceName, serviceVersion)
 	defer cleanup()
 
-	service := env.GetVariableOrDie(log, "FIMBUL_URL", "url to weather service")
-	woPrefix := env.GetVariableOrDie(log, "WO_PREFIX", "prefix ending for the entity id")
-	ctxBrokerURL := env.GetVariableOrDie(log, "CONTEXT_BROKER_URL", "url to context broker")
+	service := env.GetVariableOrDie(ctx, "FIMBUL_URL", "url to weather service")
+	woPrefix := env.GetVariableOrDie(ctx, "WO_PREFIX", "prefix ending for the entity id")
+	ctxBrokerURL := env.GetVariableOrDie(ctx, "CONTEXT_BROKER_URL", "url to context broker")
 
 	ctxBroker := client.NewContextBrokerClient(ctxBrokerURL, client.Debug("true"))
 
@@ -46,6 +46,6 @@ func main() {
 	})
 
 	if err != nil {
-		log.Error().Err(err).Msg("program failed")
+		log.Error("fimbul integration failed", "err", err.Error())
 	}
 }
